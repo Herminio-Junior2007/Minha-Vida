@@ -172,6 +172,43 @@ main.show{display:block}
 .footer{text-align:center;color:#746a70;font-size:.75rem;padding:25px 18px 45px}
 .reveal{opacity:0;transform:translateY(35px);transition:opacity .9s ease,transform .9s ease}
 .reveal.visible{opacity:1;transform:none}
+
+/* 🎵 BOTÃO DE MÚSICA */
+.music-btn{
+  position:fixed;
+  bottom:20px;
+  right:20px;
+  z-index:40;
+  width:52px;
+  height:52px;
+  border-radius:50%;
+  border:1px solid rgba(255,180,199,.4);
+  background:rgba(255,127,163,.15);
+  color:var(--rose);
+  font-size:22px;
+  cursor:pointer;
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
+  transition:background .3s,transform .3s;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  box-shadow:0 8px 25px rgba(255,127,163,.2);
+}
+.music-btn:hover{background:rgba(255,127,163,.3);transform:scale(1.1)}
+.music-btn:active{transform:scale(.95)}
+.music-btn .icon{
+  display:block;
+  transition:transform .3s;
+}
+.music-btn.playing .icon{
+  animation:spin 4s linear infinite;
+}
+.music-btn.muted .icon{
+  opacity:.5;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
 @media(max-width:700px){
   .hero{padding:25px 18px 55px;background-position:center top}
   .memory{grid-template-columns:1fr;gap:20px;margin-top:50px}
@@ -179,10 +216,18 @@ main.show{display:block}
   .section{padding:70px 14px}
   .memory img{border-radius:18px;max-height:none;object-fit:contain}
   .letter-box{padding:28px 18px}
+  .music-btn{width:46px;height:46px;bottom:16px;right:16px;font-size:20px}
 }
 </style>
 </head>
 <body>
+
+<!-- 🎵 MÚSICA DE FUNDO -->
+<audio id="bgMusic" loop preload="auto">
+  <source src="musica.mp3" type="audio/mpeg">
+  <source src="musica.ogg" type="audio/ogg">
+  O teu navegador não suporta áudio.
+</audio>
 
 <div id="opening" class="screen">
   <div class="open-card">
@@ -282,15 +327,58 @@ main.show{display:block}
   <div class="footer">Feito com muito amor ❤️</div>
 </main>
 
+<!-- 🎵 BOTÃO DE MÚSICA -->
+<button id="musicBtn" class="music-btn muted" aria-label="Ligar/desligar música" title="Ligar/desligar música">
+  <span class="icon">♫</span>
+</button>
+
 <script>
+const music = document.getElementById("bgMusic");
+const musicBtn = document.getElementById("musicBtn");
+
 function openStory(){
   document.getElementById("opening").classList.add("hide");
   document.getElementById("story").classList.add("show");
+
+  // 🎵 Começa a música com fade-in suave
+  music.volume = 0;
+  const playPromise = music.play();
+  if (playPromise !== undefined) {
+    playPromise.then(() => {
+      musicBtn.classList.remove("muted");
+      musicBtn.classList.add("playing");
+      // Fade-in
+      let v = 0;
+      const fade = setInterval(() => {
+        v += 0.02;
+        if (v >= 0.5) { v = 0.5; clearInterval(fade); }
+        music.volume = v;
+      }, 100);
+    }).catch(err => {
+      console.log("Não foi possível tocar automaticamente:", err);
+    });
+  }
+
   setTimeout(()=>document.querySelectorAll(".reveal").forEach((el,i)=>{
     setTimeout(()=>el.classList.add("visible"),i*120)
   }),450);
 }
-const observer=new IntersectionObserver(entries=>{
+
+// 🎵 Botão ligar/desligar música
+musicBtn.addEventListener("click", () => {
+  if (music.paused) {
+    music.play().then(() => {
+      musicBtn.classList.remove("muted");
+      musicBtn.classList.add("playing");
+    });
+  } else {
+    music.pause();
+    musicBtn.classList.remove("playing");
+    musicBtn.classList.add("muted");
+  }
+});
+
+const observer = new IntersectionObserver(entries=>{
   entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add("visible")});
 },{threshold:.12});
 document.querySelectorAll(".reveal").forEach(el=>observer.observe(el));
